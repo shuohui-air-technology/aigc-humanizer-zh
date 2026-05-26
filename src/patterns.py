@@ -336,12 +336,38 @@ _HARD_CONSTRAINTS: ClassVar = [
 # ---------------------------------------------------------------------------
 
 _PARAGRAPH_SPLIT = re.compile(r"\n{1,3}")
+_SENTENCE_SPLIT = re.compile(r"[。！？\n]+")
+_CLAUSE_SPLIT = re.compile(r"[，,；;]+")
 
 
 def _split_paragraphs(text: str) -> list[str]:
-    """将文本按空行或单换行切分为段落。"""
-    raw = _PARAGRAPH_SPLIT.split(text.strip())
-    return [p.strip() for p in raw if p.strip()]
+    """将文本切分为段落，支持自动降级。
+
+    优先按空行切分；若结果过少（≤2 段且平均每段 >200 字），
+    则降级为按句号切分，再降级为按逗号切分，确保各类文本
+    都能被合理拆分，避免单段落导致模式检测失效。
+    """
+    text = text.strip()
+    if not text:
+        return []
+
+    # 第一级：按空行/换行切
+    raw = _PARAGRAPH_SPLIT.split(text)
+    result = [p.strip() for p in raw if p.strip()]
+
+    # 第二级：段太少且太长 → 按句号切
+    avg_len = sum(len(p) for p in result) / len(result)
+    if len(result) <= 2 and avg_len > 200:
+        raw = _SENTENCE_SPLIT.split(text)
+        result = [p.strip() for p in raw if p.strip()]
+
+    # 第三级：还是太少且太长 → 按逗号切
+    avg_len = sum(len(p) for p in result) / len(result)
+    if len(result) <= 2 and avg_len > 200:
+        raw = _CLAUSE_SPLIT.split(text)
+        result = [p.strip() for p in raw if p.strip()]
+
+    return result
 
 
 # ---------------------------------------------------------------------------
