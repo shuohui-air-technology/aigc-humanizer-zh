@@ -10,9 +10,9 @@
 
 from __future__ import annotations
 
+import re
 import string
 from dataclasses import dataclass, field
-from typing import Any
 
 import jieba
 
@@ -211,7 +211,6 @@ class QualityAssessor:
             r"(扮演着.{1,15}的角色)",
             r"(发挥着.{1,15}的作用)",
         ]
-        import re
 
         for pat in indirect_patterns:
             count = len(re.findall(pat, text))
@@ -273,7 +272,6 @@ class QualityAssessor:
             r"(本文认为)",
             r"(在笔者看来)",
         ]
-        import re
 
         has_voice = any(re.search(m, text) for m in authentic_markers)
         if has_voice:
@@ -303,7 +301,6 @@ class QualityAssessor:
     @staticmethod
     def _score_information_density(text: str, suggestions: list[str]) -> int:
         score = 8
-        import re
 
         # 填充短语
         filler_patterns = [
@@ -330,7 +327,6 @@ class QualityAssessor:
     @staticmethod
     def _score_academic_norm(text: str, suggestions: list[str]) -> int:
         score = 8
-        import re
 
         # 模糊归因扣分
         vague = len(re.findall(r"(专家认为|学者认为|业内普遍认为|一些学者指出)", text))
@@ -354,7 +350,6 @@ class QualityAssessor:
         text: str, sentences: list[str], suggestions: list[str]
     ) -> int:
         score = 7
-        import re
 
         # 相同句式开头
         if len(sentences) >= 3:
@@ -382,8 +377,6 @@ class QualityAssessor:
     @staticmethod
     def _split_sentences(text: str) -> list[str]:
         """简单的句子切分（按 。！？ 分割）。"""
-        import re
-
         parts = re.split(r"[。！？\n]+", text)
         return [p.strip() for p in parts if p.strip()]
 

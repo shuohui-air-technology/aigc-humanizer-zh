@@ -3,15 +3,17 @@
 MCP Server: AIGC Humanizer ZH — 中文学术写作去 AI 味引擎
 =========================================================
 基于 humanizer-zh-academic skill（16 种 AI 模式、7 项硬约束、60 分制评估），
-提供 6 个 MCP 工具供 agent（如 DeepSeek TUI）自动化调用。
+提供 8 个 MCP 工具供 agent（如 DeepSeek TUI）自动化调用。
 
 工具列表:
-  mask_latex           — LaTeX 公式保护（栈式扫描器）
-  evaluate_ttr         — TTR 词汇丰富度 + 违禁词审查
-  restore_latex        — LaTeX 公式还原
-  analyze_ai_risk      — 16 种 AI 模式扫描 + 硬约束评估
-  assess_quality       — 6 维度 60 分制质量评分
-  generate_rewrite_plan — 基于风险报告生成结构化改写计划
+  mask_latex             — LaTeX 公式保护（栈式扫描器）
+  evaluate_ttr           — TTR 词汇丰富度 + 违禁词审查
+  restore_latex          — LaTeX 公式还原
+  analyze_ai_risk        — 16 种 AI 模式扫描 + 硬约束评估
+  assess_quality         — 6 维度 60 分制质量评分
+  generate_rewrite_plan  — 基于风险报告生成结构化改写计划
+  analyze_by_paragraph   — 逐段 AIGC 评分，支持交互式决策
+  build_rewrite_prompt   — 为单段生成 LLM 改写 prompt
 
 典型工作流:
   1. mask_latex → 保护公式
@@ -38,7 +40,7 @@ if str(_here) not in sys.path:
 from mcp.server.fastmcp import FastMCP
 
 from src.scanner import LatexScanner
-from src.patterns import PatternDetector
+from src.patterns import PatternDetector, _split_paragraphs
 from src.evaluator import TtrEvaluator, QualityAssessor
 
 # ---------------------------------------------------------------------------
@@ -355,7 +357,7 @@ def analyze_by_paragraph(text: str) -> dict[str, Any]:
     """
     try:
         report = _detector.analyze(text)
-        paragraphs = _split_text_paragraphs(text)
+        paragraphs = _split_paragraphs(text)
 
         para_results: list[dict[str, Any]] = []
         high_risk_count = 0
@@ -498,17 +500,6 @@ def build_rewrite_prompt(
 只输出改写后的段落文本，不要加任何解释、标记或前后缀。"""
 
     return prompt
-
-
-# ---------------------------------------------------------------------------
-# 辅助
-# ---------------------------------------------------------------------------
-
-def _split_text_paragraphs(text: str) -> list[str]:
-    """将文本按空行切分为段落列表。"""
-    import re
-    raw = re.split(r"\n{1,3}", text.strip())
-    return [p.strip() for p in raw if p.strip()]
 
 
 # ===========================================================================
