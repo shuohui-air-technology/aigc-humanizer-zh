@@ -79,17 +79,32 @@ python scripts/evaluate_red_blue.py \
 
 ---
 
-## 方式二：Skill 文件（轻量版）
+## 方式二：Skill 文件
 
 如果你不想安装 Python 依赖，或者只是临时处理一两篇论文，可以直接加载 Skill 文件让 agent 按规则执行。
+
+### 两种 Skill
+
+| 文件 | 定位 | 行数 | 特点 |
+|------|------|------|------|
+| `SKILL.md` | **轻量版**（默认） | 410 | 16 种模式速查 + HC-1~HC-7 + 逐段改写流程，零依赖，加载即用 |
+| `humanizer-zh-full.md` | **完整版** | 623 | 轻量版全部内容 + LaTeX 公式保护/还原 + TTR 词汇丰富度自检 + 结构化逐段输出模板 + MCP 工具映射 |
+
+轻量版已作为默认 Skill 文件，直接加载即可。如需完整版能力：
 
 ### 加载
 
 ```
-/skill https://raw.githubusercontent.com/shuohui-air-technology/aigc-humanizer-zh/main/humanizer-zh-light.md
+/skill https://raw.githubusercontent.com/shuohui-air-technology/aigc-humanizer-zh/main/SKILL.md
 ```
 
 加载后 agent 即获得：逐段扫描 → 交互式改写 → 最终自检 的完整能力。
+
+如需完整版（含 LaTeX 处理 + TTR + 结构化模板）：
+
+```
+/skill https://raw.githubusercontent.com/shuohui-air-technology/aigc-humanizer-zh/main/humanizer-zh-full.md
+```
 
 ### 能做什么
 
@@ -100,9 +115,11 @@ python scripts/evaluate_red_blue.py \
 - **质量自评** — 6 维度自主判断（直接性、节奏、真实性、信息密度、学术规范、抗检测性）
 - **噪声保留** — 每千字保留 2-3 处轻微 AI 特征，避免过度均质化
 
-### 与 MCP 版的差异
+### 轻量版与完整版的差异
 
-轻量版阉割了需要代码才能实现的功能：TTR 词汇丰富度自动计算、60 分制自动评分、正则引擎的确定性强扫描。4 种统计类模式（P13-P16）需要你逐段手动统计。但核心的**逐段交互式改写流程**和**16 种模式的改写规则**完整保留。
+轻量版（`SKILL.md`）阉割了完整版（`humanizer-zh-full.md`）的部分能力：TTR 词汇丰富度判断标准、LaTeX 公式手动保护/还原流程、结构化逐段输出模板。4 种统计类模式（P13-P16）需你逐段手动统计。但核心的**逐段交互式改写流程**和**16 种模式的改写规则**完整保留。
+
+与 MCP Server 相比，两个 Skill 版本都无法自动执行 TTR 计算和正则引擎扫描，但完整版提供了更接近 MCP 工具链路的手动操作指南。
 
 ---
 
@@ -177,8 +194,9 @@ aigc-humanizer-zh/
 ├── tests/                     # 6 个测试文件 + 62 条合成样例
 ├── docs/
 │   └── red-blue-workflow.md   # 红蓝工作流文档
-├── humanizer-zh-light.md      # 轻量版 Skill（~520 行，零依赖）
-├── SKILL.md                   # 完整版 Skill 参考（554 行）
+├── SKILL.md                   # 轻量版 Skill（410 行，默认加载）
+├── humanizer-zh-full.md       # 完整版 Skill（623 行，含 LaTeX/TTR/结构化模板）
+├── humanizer-zh-light.md      # 轻量版 Skill 副本
 ├── WORKFLOW.md                # 交互式工作流 Agent Prompt 模板
 ├── pyproject.toml             # Python 工程配置
 ├── requirements.txt           # mcp + jieba
