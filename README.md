@@ -1,32 +1,65 @@
 # AIGC Humanizer ZH
 
-> 中文学术写作 AIGC 率降低工具 — 提供**完整版**（MCP Server，自动检测）和**轻量版**（Skill 文件，零依赖）两种形态
+> 中文学术写作 AIGC 率降低工具 — 基于 16 种 AI 写作模式的**检测 → 报告 → 改写 → 验证**完整链路
 
 [![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![MCP](https://img.shields.io/badge/MCP-1.0+-green.svg)](https://modelcontextprotocol.io/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Rule Version](https://img.shields.io/badge/rules-v0.2-orange.svg)](src/patterns.py)
 
 ---
 
 ## 这是什么？
 
-`aigc-humanizer-zh` 帮助你在不改动学术观点的前提下，系统性地降低中文学术文本的 AIGC 检测率。它基于真实论文改写实验（AIGC 率从 >50% 降至 11%）归纳的 16 种 AI 写作模式，提供**检测 → 报告 → 改写指导 → 质量验证**的完整链路。
-
-项目提供两种形态，按需选用：
+`aigc-humanizer-zh` 帮助你在不改动学术观点的前提下，系统性地降低中文学术文本的 AIGC 检测率。它基于真实论文改写实验（AIGC 率从 >50% 降至 11%）归纳的规律，提供两种形态：
 
 | | 完整版（MCP Server） | 轻量版（Skill 文件） |
 |---|---|---|
 | **文件** | `server.py` + `src/` | `humanizer-zh-light.md` |
 | **依赖** | Python 3.10+ / jieba / mcp | 零依赖 |
 | **部署** | 配置 MCP 客户端 | 复制到 skills 目录即用 |
-| **检测方式** | 正则引擎自动扫描，确定性强 | agent 自行理解规则并判断 |
-| **AI 模式** | 16 种全覆盖 | 10 种核心高频模式 |
+| **AI 模式** | 16 种全覆盖，正则引擎自动扫描 | 10 种核心高频，agent 自行判断 |
 | **TTR 词汇丰富度** | ✓ jieba 分词自动计算 | ✗ |
-| **60 分制评分** | ✓ 6 维度自动打分 | ✗（你应该自主判断） |
-| **LaTeX 保护** | 栈式扫描器（嵌套安全） | 手动占位符规则 |
+| **60 分制评分** | ✓ 6 维度自动打分 | ✗ |
+| **LaTeX 保护** | ✓ 栈式扫描器（嵌套安全） | 手动占位符规则 |
+| **规则版本** | v0.2（score_raw/capped 追踪） | — |
 | **适用场景** | 批量处理、高精度需求 | 快速上手、临时使用 |
 
-**如何选择：** 如果你已经配置了 DeepSeek TUI 或 Claude Desktop 的 MCP，用完整版获得自动检测能力；如果只是想快速试一下、或者环境受限，用轻量版 Skill 文件——加载后 agent 就能直接按规则执行改写。
+---
+
+## Features
+
+### 检测引擎
+
+- **16 种 AI 写作模式** — 理论起笔、段末套路、编号逻辑、被动套话、三元并列、冗余总结、模糊归因、填充短语、泛化结论、AI 高频词、回避「是」、过度排比、三步走、破折号密度、加粗滥用。每种模式独立计分，带 `weight` 和 `score_cap` 上限
+- **7 项硬约束** — 高频词密度、段末套句、三元并列、理论起笔占比、加粗过量、泛化结尾、模糊归因，命中即判定高风险
+- **上下文感知过滤** — `_passes_location`（段首/段末位置约束）+ `_passes_context_filter`（模糊归因过滤 `本研究表明`/`Boulianne(2015)` 等具体引用）
+- **P6/P14 规则分离** — P6 专注 `理论上/实践上/方法上` 对称三元，P14 专注 `从...维度看` 三步走，消除重叠命中
+- **LaTeX 栈式扫描器** — 逐字符扫描，正确处理嵌套环境/行内/区块公式，支持 `mask → 润色 → restore` 无损往返
+- **60 分制质量评估** — 6 维度评分（直接性、节奏、真实性、信息密度、学术规范、抗检测性），≥54 优秀 / ≥42 良好
+- **TTR 词汇丰富度** — jieba 分词计算 Type-Token Ratio，内置违禁词拦截；jieba 不可用时自动回退
+
+### MCP Server
+
+- **8 个 MCP 工具** — `mask_latex` / `evaluate_ttr` / `restore_latex` / `analyze_ai_risk` / `assess_quality` / `generate_rewrite_plan` / `analyze_by_paragraph` / `build_rewrite_prompt`
+- **v0.2 元数据** — 所有工具输出含 `rule_version`、`score_raw`、`score_capped`、`score_max`，计分过程完全透明
+- **逐段交互式工作流** — 展示每段 AIGC 评分 (0-100)，用户逐段决策是否改写，改写后对比确认
+- **结构化改写计划** — 按 SOP 6 步（移位→砍尾→破对称→换词→去模糊→注视角）自动生成优先级排序的改写指导
+
+### 红蓝军评测闭环（v0.3 新增）
+
+- **62 条匿名合成样例** — `tests/fixtures/red_blue/synthetic.jsonl`，覆盖 16 种 pattern 各 ≥3 正例、7 项硬约束各 ≥3 正例、negative/near_miss 全覆盖
+- **确定性裁判脚本** — `scripts/evaluate_red_blue.py`，零网络零 LLM 依赖，输出 pattern/HC 级 F1、误报率、覆盖率、分数边界检查
+- **回归测试套件** — 22 项 pytest 测试，含 schema 校验、v0.2 元数据字段、红蓝评测阈值（F1≥0.70 / FPR≤0.15）
+- **红队 Prompt 模板** — 见 `docs/red-blue-workflow.md`，可直接用 LLM 生成正例/near_miss/adversarial 候选样例
+
+### 轻量版 Skill
+
+- **零依赖** — `humanizer-zh-light.md`，248 行纯文本，复制到 skills 目录即用
+- **10 种高频模式** — 含触发词、改写示例、替换词表
+- **6 步改写 SOP** — 移位→砍尾→破对称→换词→去模糊→注视角
+- **学者视角注入** — 4 种去「机器稿」方法：承认局限、表达意外、留下判断、短句造节奏
+- **噪声保留原则** — 每千字保留 2-3 处轻微 AI 特征，避免过度均质化
 
 ---
 
@@ -38,7 +71,13 @@
 # 1. 安装依赖
 pip install -r requirements.txt
 
-# 2. 启动服务（stdio 传输，供 MCP 客户端调用）
+# 2. 运行测试
+.venv/bin/pytest                  # 单元测试
+python scripts/evaluate_red_blue.py \
+  --fixtures tests/fixtures/red_blue \
+  --min-f1 0.70 --max-fpr 0.15    # 红蓝评测
+
+# 3. 启动服务（stdio 传输，供 MCP 客户端调用）
 python server.py
 ```
 
@@ -52,45 +91,30 @@ args = ["/path/to/aigc-humanizer-zh/server.py"]
 
 ### 轻量版（Skill 文件）
 
-**方式一：本地加载**
-```
-/skill /path/to/humanizer-zh-light.md
-```
-
-**方式二：从 GitHub 加载**
 ```
 /skill https://raw.githubusercontent.com/shuohui-air-technology/aigc-humanizer-zh/main/humanizer-zh-light.md
 ```
 
-加载后，agent 即获得「逐段扫描 AI 痕迹 → 交互式改写 → 自检输出」的能力。
+加载后 agent 即获得「逐段扫描 AI 痕迹 → 交互式改写 → 自检输出」的能力。
 
 ---
 
-## 完整版 — 8 个 MCP 工具
+## MCP 工具速查
 
-### 核心流程工具
-
-| 工具 | 功能 | 典型用途 |
-|------|------|----------|
-| `mask_latex` | LaTeX 公式 → 占位符（栈式扫描） | 润色前保护公式，防止被 LLM 篡改 |
-| `evaluate_ttr` | TTR 词汇丰富度 + 违禁词拦截 | 快速初筛，违禁词命中即判定不通过 |
-| `restore_latex` | 占位符 → 原始 LaTeX 公式 | 润色后无损还原 |
-| `analyze_ai_risk` | 16 种模式扫描 + 7 项硬约束 | 深度风险分析，输出结构化报告 |
-| `assess_quality` | 6 维度 60 分制质量评分 | 改写后效果验证（≥54 优秀 / ≥42 良好） |
-| `generate_rewrite_plan` | 生成结构化改写计划（SOP 6 步） | 指导 agent 按优先级改写 |
-
-### 交互式逐段工具
-
-| 工具 | 功能 | 典型用途 |
-|------|------|----------|
-| `analyze_by_paragraph` | 逐段输出 AIGC 评分 (0-100) + 模式命中 + `needs_rewrite` 标志 | 支持用户逐段决策是否改写 |
-| `build_rewrite_prompt` | 为单段生成结构化改写 prompt（含原文、命中模式、文体约束） | agent 直接将 prompt 喂给 LLM 执行改写 |
-
-> 交互式工具的详细用法见 [WORKFLOW.md](WORKFLOW.md)，包含可直接复制的 Agent Prompt 模板。
+| 工具 | 功能 | 关键输出 |
+|---|---|---|
+| `mask_latex` | LaTeX 公式 → 占位符（栈式扫描） | `masked_text`, `count`, `warnings` |
+| `evaluate_ttr` | TTR 词汇丰富度 + 违禁词拦截 | `passed`, `ttr_score`, `banned_words_found` |
+| `restore_latex` | 占位符 → 原始 LaTeX 公式 | 还原后完整文本 |
+| `analyze_ai_risk` | 16 种模式 + 7 项硬约束 | `rule_version`, `score_raw/capped/max`, `hard_violations` |
+| `assess_quality` | 6 维度 60 分制评分 | `total_score`, `grade`, `dimensions` |
+| `generate_rewrite_plan` | SOP 6 步改写计划 | `rewrite_plan` (优先级排序) |
+| `analyze_by_paragraph` | 逐段 AIGC 评分 (0-100) | `aigc_score`, `needs_rewrite`, `patterns` |
+| `build_rewrite_prompt` | 单段 LLM 改写 prompt | 结构化 prompt（可直接喂给 LLM） |
 
 ---
 
-## 完整版 — 典型工作流
+## 典型工作流
 
 ```
 原始文本
@@ -107,7 +131,7 @@ args = ["/path/to/aigc-humanizer-zh/server.py"]
     └── ...
     │
     ▼ assess_quality()
-60 分制验证
+60 分制验证（≥54 优秀）
     │
     ▼ restore_latex()
 最终文本（公式已还原）
@@ -115,9 +139,7 @@ args = ["/path/to/aigc-humanizer-zh/server.py"]
 
 ---
 
-## 检测能力
-
-### 16 种 AI 写作模式
+## 16 种 AI 写作模式
 
 | ID | 模式 | 严重度 | 触发示例 | 完整版 | 轻量版 |
 |----|------|--------|----------|:---:|:---:|
@@ -127,71 +149,53 @@ args = ["/path/to/aigc-humanizer-zh/server.py"]
 | 4 | 被动分析套话 | 🔴 高 | 「该处理体现了……」 | ✓ | ✓ |
 | 5 | 模板化问题陈述 | 🟡 中 | 「面临的核心问题是……」 | ✓ | — |
 | 6 | 三元并列对称 | 🟡 中 | 「理论上……实践上……方法上……」 | ✓ | ✓ |
-| 7 | 段末冗余总结 | 🔴 高 | 「综上所述……由此可见……」 | ✓ | ✓ |
+| 7 | 段末冗余总结 | 🔴 高 | 「综上所述……」 | ✓ | ✓ |
 | 8 | 模糊归因 | 🔴 高 | 「专家认为……」（无出处） | ✓ | ✓ |
 | 9 | 填充短语 | 🟢 低 | 「值得注意的是……」 | ✓ | ✓ |
-| 10 | 泛化结论 | 🔴 高 | 「具有重要意义……前景广阔……」 | ✓ | ✓ |
-| 11 | AI 高频词 | 🟡 中 | 「深刻揭示」「不可或缺」「综合运用」 | ✓ | ✓ |
-| 12 | 回避系动词「是」 | 🟡 中 | 「作为……重要载体」「扮演着……角色」 | ✓ | — |
-| 13 | 过度排比 | 🟡 中 | 「突破范式，填补空白，创新视角……」 | ✓ | — |
+| 10 | 泛化结论 | 🔴 高 | 「具有重要意义……」 | ✓ | ✓ |
+| 11 | AI 高频词 | 🟡 中 | 「深刻揭示」「不可或缺」 | ✓ | ✓ |
+| 12 | 回避系动词「是」 | 🟡 中 | 「作为……重要载体」 | ✓ | — |
+| 13 | 过度排比 | 🟡 中 | 「突破范式，填补空白……」 | ✓ | — |
 | 14 | 三步走结构 | 🟡 中 | 「从经济维度……社会维度……文化维度……」 | ✓ | — |
 | 15 | 破折号密度异常 | 🟢 低 | 一段内 —— 超过 4 次 | ✓ | — |
 | 16 | 正文加粗滥用 | 🟢 低 | 全文 ** 超过 5 处 | ✓ | — |
 
-### 7 项硬约束
-
-硬约束在完整版中由代码自动检测，命中即判定高风险；轻量版中由 agent 按清单人工核查。
-
-| # | 约束 | 阈值 | 违规后果 |
-|---|------|------|----------|
-| 1 | AI 高频词密度 | 每段 > 2 个 | 高风险 |
-| 2 | 段末总结套句 | 全文 > 1 处 | 高风险 |
-| 3 | 整齐三元并列 | 每段 > 1 处 | 高风险 |
-| 4 | 理论起笔占比 | > 20% 段落 | 高风险 |
-| 5 | 正文加粗 | 全文 > 5 处 | 高风险 |
-| 6 | 泛化结尾 | 全文 > 0 处 | 高风险 |
-| 7 | 模糊归因 | 全文 > 0 处 | 高风险 |
-
-### 60 分制质量评估（仅完整版）
-
-| 维度 | 满分 | 评估要点 |
-|------|------|----------|
-| 直接性 | 10 | 直接陈述 vs 绕圈宣告 |
-| 节奏 | 10 | 句子长度变化，长短交替 |
-| 真实性 | 10 | 是否像真实学者在说话 |
-| 信息密度 | 10 | 每句话承载信息，无废话 |
-| 学术规范 | 10 | 归因具体、限定合理、语域匹配 |
-| 抗检测性 | 10 | 模式规律性是否被充分打破 |
-
-评分标准：**54-60** 优秀 / **42-53** 良好 / **< 42** 需修订。
+> P6（三元对称）和 P14（三步走）在 v0.2 中已分离，不再重叠命中。
 
 ---
 
-## 轻量版（humanizer-zh-light.md）
+## 7 项硬约束
 
-轻量版是一个 **248 行的纯文本 Skill 文件**，专为以下场景设计：
+| # | 约束 | 阈值 | 违规后果 |
+|---|------|------|----------|
+| HC-1 | AI 高频词密度 | 每段 > 2 个 | 高风险 |
+| HC-2 | 段末总结套句 | 全文 > 1 处 | 高风险 |
+| HC-3 | 整齐三元并列 | 每段 > 1 处 | 高风险 |
+| HC-4 | 理论起笔占比 | > 20% 段落 | 高风险 |
+| HC-5 | 正文加粗 | 全文 > 5 处 | 高风险 |
+| HC-6 | 泛化结尾 | 全文 > 0 处 | 高风险 |
+| HC-7 | 模糊归因 | 全文 > 0 处 | 高风险 |
 
--   不想安装 Python 依赖
--   只需要临时处理一两篇论文
--   在受限环境（如在线 notebook）中使用
--   想先体验规则效果，再决定是否部署完整版
+---
 
-### 包含内容
+## 红蓝军评测闭环
 
-| 模块 | 内容 |
-|------|------|
-| 10 种核心 AI 模式 | 含触发词、改写示例、替换词表 |
-| 6 项硬约束 | 简化自查清单 |
-| 改写 SOP | 6 步优先级流程 |
-| 噪声保留原则 | 避免过度均质化 |
-| LaTeX 保护规则 | 手动占位符方案 |
-| 交互式改写流程 | 逐段扫描 → 用户决策 → 改写的完整指令 |
-| 注入学者视角 | 4 种去「机器稿」的具体方法 |
-| 输出自检清单 | 8 项核查 |
+本项目使用确定性的红蓝对抗循环来持续提升规则精度：
 
-### 与完整版的差异
+```
+红队生成样例 → 人工审核 → 蓝队调规则 → 裁判脚本阻断回归
+```
 
-轻量版阉割了 6 种需要代码检测才能稳定识别、或在学术写作中出现频率较低的模式（模板化问题陈述、回避「是」、过度排比、三步走、破折号密度、加粗滥用）。TTR 和 60 分制评分改为由你自主判断。核心的交互式逐段改写流程完整保留。
+```bash
+# 运行红蓝评测（当前 baseline: F1 ≥ 0.70, 误报率 ≤ 0.15）
+python scripts/evaluate_red_blue.py \
+  --fixtures tests/fixtures/red_blue \
+  --min-f1 0.70 --max-fpr 0.15
+```
+
+当前 v0.3 baseline：62 条合成样例，16 种 pattern 全覆盖，negative/near_miss 误报率 0.00。
+
+详细工作流（含红队 LLM prompt 模板）见 [`docs/red-blue-workflow.md`](docs/red-blue-workflow.md)。
 
 ---
 
@@ -199,33 +203,40 @@ args = ["/path/to/aigc-humanizer-zh/server.py"]
 
 ```
 aigc-humanizer-zh/
-│
-├── server.py                 # MCP Server 入口（8 个 @mcp.tool()）
-│
-├── src/                      # 核心引擎
-│   ├── scanner.py            #   LaTeX 栈式扫描器（嵌套安全，216 行）
-│   ├── patterns.py           #   16 种 AI 模式检测 + 7 项硬约束（623 行）
-│   └── evaluator.py          #   TTR 评估 + 6 维度 60 分制质量评分（404 行）
-│
-├── humanizer-zh-light.md     # 轻量版 Skill 文件（248 行，零依赖）
-├── WORKFLOW.md               # 交互式工作流完整文档 + Agent Prompt 模板
-├── SKILL.md                  # 上游 humanizer-zh-academic skill 参考（占位）
-│
-├── pyproject.toml            # Python 工程配置
-├── requirements.txt          # 依赖：mcp, jieba
-├── README.md                 # 本文件
-└── .gitignore
+├── src/
+│   ├── patterns.py          # 16 种 AI 模式 + 7 项硬约束（841 行，v0.2）
+│   ├── scanner.py           # LaTeX 栈式扫描器（219 行）
+│   └── evaluator.py         # TTR + 60 分制质量评估（404 行）
+├── server.py                # MCP Server 入口，8 个 @mcp.tool()
+├── scripts/
+│   └── evaluate_red_blue.py # 红蓝军评测裁判脚本（344 行）
+├── tests/
+│   ├── test_patterns.py     # 16 模式全覆盖 + 精度过滤测试
+│   ├── test_scanner.py      # LaTeX 扫描器测试
+│   ├── test_evaluator.py    # TTR 评估器测试
+│   ├── test_server_wrappers.py  # v0.2 元数据字段测试
+│   ├── test_red_blue_evaluator.py  # 红蓝评测回归测试
+│   └── fixtures/red_blue/
+│       └── synthetic.jsonl  # 62 条匿名合成样例
+├── docs/
+│   └── red-blue-workflow.md # 红蓝工作流 + 红队 prompt 模板
+├── humanizer-zh-light.md    # 轻量版 Skill 文件（248 行，零依赖）
+├── SKILL.md                 # 完整版 Skill 参考（554 行）
+├── WORKFLOW.md              # 交互式工作流 + Agent Prompt 模板
+├── pyproject.toml
+├── requirements.txt         # mcp + jieba
+└── LICENSE                  # MIT
 ```
 
 ---
 
 ## 参考来源
 
--   **humanizer-zh-academic skill** — 16 种 AI 模式、7 项硬约束、60 分制评估（554 行完整版）
--   **Wikipedia: Signs of AI writing** — WikiProject AI Cleanup 维护的英文 AI 写作模式分类框架
--   **真实论文对比实验** — 同一论文 AI 润色版（AIGC >50%）与人工二次修改版（AIGC 11%）的逐段差异分析
--   **de-AI-writing skill (OUBIGFA)** — 硬约束数字化设计参考
--   **Humanizer-zh (op7418)** — 模式分类与质量评分框架参考
+- **真实论文对比实验** — 同一论文 AI 润色版（AIGC >50%）与人工二次修改版（AIGC 11%）的逐段差异分析
+- **Wikipedia: Signs of AI writing** — WikiProject AI Cleanup 维护的英文 AI 写作模式分类框架
+- **humanizer-zh-academic skill** — 16 种 AI 模式、7 项硬约束、60 分制评估
+- **de-AI-writing skill (OUBIGFA)** — 硬约束数字化设计参考
+- **Humanizer-zh (op7418)** — 模式分类与质量评分框架参考
 
 > 思路很简单：AI 写出来的东西太「整齐」了。真正的人写论文，句子有长有短，有时候多说一句，有时候一笔带过，偶尔还会犹豫一下。这个项目要做的，就是帮你在不伤学术内容的前提下，把这些自然的波动找回来。
 
