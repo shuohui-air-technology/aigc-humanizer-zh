@@ -196,7 +196,6 @@ aigc-humanizer-zh/
 │   └── red-blue-workflow.md   # 红蓝工作流文档
 ├── SKILL.md                   # 轻量版 Skill（410 行，默认加载）
 ├── SKILL_full.md              # 完整版 Skill（623 行，含 LaTeX/TTR/结构化模板）
-├── humanizer-zh-light.md      # 轻量版 Skill 副本
 ├── WORKFLOW.md                # 交互式工作流 Agent Prompt 模板
 ├── pyproject.toml             # Python 工程配置
 ├── requirements.txt           # mcp + jieba
