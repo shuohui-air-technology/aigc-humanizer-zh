@@ -88,7 +88,7 @@ python scripts/evaluate_red_blue.py \
 | 文件 | 定位 | 行数 | 特点 |
 |------|------|------|------|
 | `SKILL.md` | **轻量版**（默认） | 410 | 16 种模式速查 + HC-1~HC-7 + 逐段改写流程，零依赖，加载即用 |
-| `humanizer-zh-full.md` | **完整版** | 623 | 轻量版全部内容 + LaTeX 公式保护/还原 + TTR 词汇丰富度自检 + 结构化逐段输出模板 + MCP 工具映射 |
+| `SKILL_full.md` | **完整版** | 623 | 轻量版全部内容 + LaTeX 公式保护/还原 + TTR 词汇丰富度自检 + 结构化逐段输出模板 + MCP 工具映射 |
 
 轻量版已作为默认 Skill 文件，直接加载即可。如需完整版能力：
 
@@ -103,7 +103,7 @@ python scripts/evaluate_red_blue.py \
 如需完整版（含 LaTeX 处理 + TTR + 结构化模板）：
 
 ```
-/skill https://raw.githubusercontent.com/shuohui-air-technology/aigc-humanizer-zh/main/humanizer-zh-full.md
+/skill https://raw.githubusercontent.com/shuohui-air-technology/aigc-humanizer-zh/main/SKILL_full.md
 ```
 
 ### 能做什么
@@ -117,7 +117,7 @@ python scripts/evaluate_red_blue.py \
 
 ### 轻量版与完整版的差异
 
-轻量版（`SKILL.md`）阉割了完整版（`humanizer-zh-full.md`）的部分能力：TTR 词汇丰富度判断标准、LaTeX 公式手动保护/还原流程、结构化逐段输出模板。4 种统计类模式（P13-P16）需你逐段手动统计。但核心的**逐段交互式改写流程**和**16 种模式的改写规则**完整保留。
+轻量版（`SKILL.md`）阉割了完整版（`SKILL_full.md`）的部分能力：TTR 词汇丰富度判断标准、LaTeX 公式手动保护/还原流程、结构化逐段输出模板。4 种统计类模式（P13-P16）需你逐段手动统计。但核心的**逐段交互式改写流程**和**16 种模式的改写规则**完整保留。
 
 与 MCP Server 相比，两个 Skill 版本都无法自动执行 TTR 计算和正则引擎扫描，但完整版提供了更接近 MCP 工具链路的手动操作指南。
 
@@ -195,7 +195,7 @@ aigc-humanizer-zh/
 ├── docs/
 │   └── red-blue-workflow.md   # 红蓝工作流文档
 ├── SKILL.md                   # 轻量版 Skill（410 行，默认加载）
-├── humanizer-zh-full.md       # 完整版 Skill（623 行，含 LaTeX/TTR/结构化模板）
+├── SKILL_full.md              # 完整版 Skill（623 行，含 LaTeX/TTR/结构化模板）
 ├── humanizer-zh-light.md      # 轻量版 Skill 副本
 ├── WORKFLOW.md                # 交互式工作流 Agent Prompt 模板
 ├── pyproject.toml             # Python 工程配置
