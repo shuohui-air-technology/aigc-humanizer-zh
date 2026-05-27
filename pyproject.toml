@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aigc-humanizer-zh"
-version = "0.1.0"
+version = "0.3.0"
 description = "中文学术写作 AIGC 率降低工具 —— MCP Server + 模式检测引擎"
 readme = "README.md"
 license = {text = "MIT"}
