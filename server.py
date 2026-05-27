@@ -173,6 +173,9 @@ def analyze_ai_risk(text: str) -> dict[str, Any]:
                 "index": pr.index + 1,
                 "prefix": pr.prefix,
                 "score": pr.score,
+                "score_raw": pr.score_raw,
+                "score_capped": pr.score_capped,
+                "score_max": pr.max_score,
                 "risk_level": pr.risk_level,
                 "patterns": [
                     {
@@ -188,6 +191,7 @@ def analyze_ai_risk(text: str) -> dict[str, Any]:
             })
 
         return {
+            "rule_version": report.rule_version,
             "overall_risk": report.overall_risk,
             "total_paragraphs": report.total_paragraphs,
             "total_score": report.total_score,
@@ -197,6 +201,7 @@ def analyze_ai_risk(text: str) -> dict[str, Any]:
         }
     except Exception as exc:
         return {
+            "rule_version": "0.2",
             "overall_risk": "评估失败",
             "total_paragraphs": 0,
             "total_score": 0,
@@ -310,6 +315,7 @@ def generate_rewrite_plan(text: str) -> dict[str, Any]:
         return {
             "rewrite_plan": plan,
             "risk_summary": {
+                "rule_version": report.rule_version,
                 "overall_risk": report.overall_risk,
                 "total_score": report.total_score,
                 "hard_violations_count": len(report.hard_violations),
@@ -320,6 +326,7 @@ def generate_rewrite_plan(text: str) -> dict[str, Any]:
         return {
             "rewrite_plan": [],
             "risk_summary": {
+                "rule_version": "0.2",
                 "overall_risk": "生成失败",
                 "total_score": 0,
                 "hard_violations_count": 0,
@@ -385,7 +392,10 @@ def analyze_by_paragraph(text: str) -> dict[str, Any]:
             para_results.append({
                 "index": pr.index + 1,
                 "text_preview": (paragraphs[pr.index] if pr.index < len(paragraphs) else pr.prefix)[:80],
-                "aigc_score": aigc_score,
+                "aigc_score": max(0, min(100, aigc_score)),
+                "score_raw": pr.score_raw,
+                "score_capped": pr.score_capped,
+                "score_max": pr.max_score,
                 "risk_level": pr.risk_level,
                 "needs_rewrite": aigc_score >= 25,
                 "pattern_count": len(pr.matches),
@@ -411,6 +421,7 @@ def analyze_by_paragraph(text: str) -> dict[str, Any]:
 
         return {
             "overview": {
+                "rule_version": report.rule_version,
                 "total_paragraphs": total_paras,
                 "high_risk_paragraphs": high_risk_count,
                 "overall_aigc_risk_pct": overall_pct,
@@ -423,6 +434,7 @@ def analyze_by_paragraph(text: str) -> dict[str, Any]:
     except Exception as exc:
         return {
             "overview": {
+                "rule_version": "0.2",
                 "total_paragraphs": 0,
                 "high_risk_paragraphs": 0,
                 "overall_aigc_risk_pct": 0,

@@ -28,3 +28,6 @@ htmlcov/
 
 # MCP
 .mcp/
+
+# Project tracking
+checklist.md

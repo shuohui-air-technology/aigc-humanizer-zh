@@ -106,11 +106,13 @@ class LatexScanner:
                     if text_start < i:
                         output.append(text[text_start:i])
                     stack.append(("block", i, None))
+                    text_start = i
                     i += 2
                 elif text[i] == "$":
                     if text_start < i:
                         output.append(text[text_start:i])
                     stack.append(("inline", i, None))
+                    text_start = i
                     i += 1
                 elif text[i : i + 7] == "\\begin{":
                     try:
@@ -122,6 +124,7 @@ class LatexScanner:
                     if text_start < i:
                         output.append(text[text_start:i])
                     stack.append(("env", i, env_name))
+                    text_start = i
                     i = j + 1
                 else:
                     i += 1

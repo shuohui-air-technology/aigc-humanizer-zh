@@ -14,7 +14,10 @@ import re
 import string
 from dataclasses import dataclass, field
 
-import jieba
+try:
+    import jieba
+except ModuleNotFoundError:  # pragma: no cover - covered indirectly by import smoke tests
+    jieba = None
 
 # ---------------------------------------------------------------------------
 # 标点清理表
@@ -69,8 +72,11 @@ class TtrEvaluator:
             # 1. 清理标点
             cleaned = text.translate(_PUNCTUATION_TABLE)
 
-            # 2. jieba 分词
-            tokens_raw = jieba.lcut(cleaned)
+            # 2. 分词：优先 jieba；缺失时使用保底 tokenizer，避免非 TTR 功能无法导入。
+            if jieba is not None:
+                tokens_raw = jieba.lcut(cleaned)
+            else:
+                tokens_raw = re.findall(r"[\u4e00-\u9fff]|[A-Za-z0-9_]+", cleaned)
             tokens = [t.strip() for t in tokens_raw if t.strip()]
 
             if not tokens:
@@ -390,7 +396,8 @@ _default_qa = QualityAssessor()
 
 
 def quick_ttr(text: str, threshold: float = 0.45) -> TtrResult:
-    return _default_ttr.evaluate(text)
+    evaluator = TtrEvaluator(target_threshold=threshold)
+    return evaluator.evaluate(text)
 
 
 def quick_quality(text: str) -> QualityScore:
